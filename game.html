@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#0a1a30" />
+<title>Atmosphere — STTM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a1a30;
+    font-family: 'Unbounded', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+
+  /* === КОНТЕЙНЕР === */
+  .app {
+    position: relative;
+    width: 100%;
+    height: 100dvh;
+    max-width: 480px;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #050a18;
+  }
+
+  /* === ЭКРАНЫ === */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+  }
+  .screen.active { display: flex; }
+
+  /* === LOADER === */
+  #loaderScreen {
+    background: linear-gradient(180deg,
+      #050a18 0%, #0a1a30 30%, #1a3560 60%, #3a6fa5 85%, #6ea8d5 100%);
+  }
+
+  .stars {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .stars::before, .stars::after {
+    content: '';
+    position: absolute;
+    width: 2px; height: 2px;
+    border-radius: 50%;
+    box-shadow:
+      24px 18vh #fff, 80px 7vh #cce, 130px 22vh #fff, 200px 12vh #fff,
+      280px 28vh #aaf, 350px 9vh #fff, 60px 35vh #fff, 170px 40vh #fff,
+      250px 36vh #ccf, 320px 44vh #fff, 90px 48vh #fff, 220px 53vh #fff,
+      400px 18vh #ddf, 410px 32vh #fff, 30px 25vh #fff, 100px 14vh #fff,
+      380px 5vh #fff, 150px 4vh #ccf, 300px 16vh #fff, 50px 55vh #fff;
+    opacity: 0.75;
+  }
+  .stars::after {
+    width: 1px; height: 1px;
+    box-shadow:
+      45px 11vh #fff, 110px 19vh #fff, 165px 8vh #fff, 230px 24vh #fff,
+      290px 13vh #fff, 360px 21vh #fff, 75px 31vh #fff, 195px 38vh #fff,
+      270px 33vh #fff, 340px 41vh #fff, 120px 46vh #fff, 245px 50vh #fff,
+      385px 27vh #fff, 425px 14vh #fff, 15px 17vh #fff, 135px 30vh #fff;
+    animation: twinkle 3s ease-in-out infinite alternate;
+  }
+  @keyframes twinkle { from { opacity: 0.3; } to { opacity: 0.9; } }
+
+  .loader-header {
+    position: absolute;
+    top: 22%; left: 0; right: 0;
+    text-align: center; color: #fff; z-index: 5;
+    animation: fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .mission-tag {
+    font-size: 10px; letter-spacing: 0.32em;
+    color: rgba(255,255,255,0.5); margin-bottom: 12px; text-transform: uppercase;
+  }
+  .loader-title {
+    font-weight: 900; font-size: clamp(28px, 7.2vw, 38px);
+    letter-spacing: 0.04em; line-height: 1; color: #fff;
+    text-shadow: 0 2px 0 rgba(0,0,0,0.15), 0 0 24px rgba(150,200,255,0.35);
+  }
+
+  .progress-block {
+    position: absolute; bottom: 24%; left: 0; right: 0;
+    padding: 0 48px; z-index: 5; color: #fff;
+    animation: fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+  }
+  .rocket-track { position: relative; height: 56px; margin-bottom: 14px; }
+  .rocket-icon {
+    position: absolute; bottom: 0; left: 0;
+    width: 36px; transform: translateX(-50%);
+    transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    filter: drop-shadow(0 4px 12px rgba(255,169,31,0.4));
+  }
+  .rocket-icon-inner { animation: rocket-bob 1.4s ease-in-out infinite alternate; display: block; }
+  @keyframes rocket-bob {
+    from { transform: translateY(0) rotate(-3deg); }
+    to   { transform: translateY(-4px) rotate(3deg); }
+  }
+  .rocket-icon::after {
+    content: ''; position: absolute; bottom: -10px; left: 50%;
+    transform: translateX(-50%); width: 8px; height: 16px;
+    background: radial-gradient(ellipse at top, #FFA91F 0%, rgba(255,169,31,0) 80%);
+    border-radius: 50%; filter: blur(2px);
+    animation: flame-flicker 0.15s steps(2) infinite;
+  }
+  @keyframes flame-flicker {
+    0%   { opacity: 0.9; height: 16px; }
+    100% { opacity: 0.6; height: 12px; }
+  }
+
+  .bar-container {
+    position: relative; width: 100%; height: 6px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 999px; overflow: hidden;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset;
+  }
+  .bar-fill {
+    position: absolute; top: 0; left: 0;
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #FFA91F 0%, #FFB84A 100%);
+    border-radius: 999px;
+    box-shadow: 0 0 16px rgba(255,169,31,0.6);
+    transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .status {
+    margin-top: 18px; display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+  }
+  .status-percent { font-weight: 700; color: #FFA91F; font-variant-numeric: tabular-nums; }
+  .retry-btn {
+    display: none; margin-top: 16px; padding: 12px 28px;
+    background: #FFA91F; color: #0f2540; border: none; border-radius: 999px;
+    font-family: inherit; font-weight: 700; font-size: 12px;
+    letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer;
+  }
+  .progress-block.error .retry-btn { display: inline-block; }
+  .progress-block.error .rocket-track,
+  .progress-block.error .bar-container { display: none; }
+  .progress-block.error .status-text { color: #ff6b6b; }
+
+  /* === GAME SCREEN === */
+  #gameScreen { background: #050a18; cursor: pointer; }
+  #canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* HUD */
+  .hud {
+    position: absolute; inset: 0; pointer-events: none; z-index: 10;
+    color: #fff;
+  }
+
+  .hud-top {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: max(env(safe-area-inset-top), 14px) 18px 0;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .lives { display: flex; gap: 4px; }
+  .heart {
+    width: 22px; height: 20px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  }
+  .heart.lost { opacity: 0.18; transform: scale(0.85); }
+  .heart.flash { animation: heart-flash 0.5s ease; }
+  @keyframes heart-flash {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.4); filter: drop-shadow(0 0 12px #ff4040); }
+    100% { transform: scale(1); }
+  }
+
+  .score {
+    background: rgba(10, 26, 48, 0.55);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    padding: 8px 16px; border-radius: 999px;
+    font-weight: 700; font-size: 14px; letter-spacing: 0.08em;
+    border: 1px solid rgba(255,255,255,0.08);
+    font-variant-numeric: tabular-nums;
+  }
+  .score.bump { animation: score-bump 0.4s ease; }
+  @keyframes score-bump {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.18); color: #FFA91F; }
+    100% { transform: scale(1); }
+  }
+
+  /* Шкала скорости */
+  .speed-meter {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 45%;
+    background: linear-gradient(180deg,
+      #4ade80 0%,
+      #facc15 50%,
+      #ef4444 100%);
+    border-radius: 999px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset;
+    overflow: visible;
+  }
+  .speed-meter::before {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border-radius: 999px;
+    background: linear-gradient(180deg,
+      rgba(74,222,128,0.85) 0%,
+      rgba(250,204,21,0.85) 50%,
+      rgba(239,68,68,0.85) 100%);
+  }
+  .meter-indicator {
+    position: absolute;
+    right: -3px;
+    width: 16px;
+    height: 5px;
+    background: #fff;
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(255,255,255,0.8), 0 1px 2px rgba(0,0,0,0.5);
+    transition: bottom 0.1s ease-out;
+    /* bottom задаётся через JS */
+  }
+
+  /* Overlay названия слоя */
+  .layer-overlay {
+    position: absolute;
+    top: 38%; left: 0; right: 0;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .layer-overlay.show { opacity: 1; }
+  .layer-name {
+    font-weight: 900;
+    font-size: clamp(28px, 8vw, 42px);
+    letter-spacing: 0.08em;
+    color: #fff;
+    text-shadow:
+      0 4px 12px rgba(0,0,0,0.5),
+      0 0 32px rgba(150,200,255,0.4);
+    text-transform: uppercase;
+  }
+  .layer-sub {
+    margin-top: 8px;
+    font-size: 10px;
+    letter-spacing: 0.32em;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+  }
+
+  /* Подсказка для первого тапа */
+  .hint {
+    position: absolute;
+    bottom: 18%;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    pointer-events: none;
+    animation: hint-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes hint-pulse {
+    0%, 100% { opacity: 0.5; transform: translateY(0); }
+    50%      { opacity: 1; transform: translateY(-6px); }
+  }
+  .hint.hidden { display: none; }
+
+  /* === МОДАЛЬНЫЕ ЭКРАНЫ (GameOver / Win) === */
+  .modal {
+    display: none;
+    background: rgba(5, 10, 24, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+  }
+  .modal.active {
+    display: flex;
+    animation: fade-in 0.4s ease both;
+  }
+  .modal-content {
+    text-align: center;
+    color: #fff;
+    padding: 0 40px;
+    max-width: 360px;
+  }
+  .modal-icon {
+    font-size: 54px;
+    margin-bottom: 14px;
+    filter: drop-shadow(0 4px 16px rgba(0,0,0,0.5));
+  }
+  .modal-title {
+    font-weight: 900;
+    font-size: clamp(24px, 7vw, 32px);
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
+  }
+  .modal-score {
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 8px;
+  }
+  .modal-score-value {
+    font-weight: 900;
+    font-size: 56px;
+    color: #FFA91F;
+    line-height: 1;
+    margin-bottom: 32px;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 32px rgba(255,169,31,0.4);
+  }
+  .modal-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .modal-btn {
+    padding: 16px 28px;
+    border: none;
+    border-radius: 999px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .modal-btn.primary {
+    background: #FFA91F;
+    color: #0f2540;
+    box-shadow: 0 6px 20px rgba(255,169,31,0.4);
+  }
+  .modal-btn.primary:active { transform: scale(0.97); }
+  .modal-btn.secondary {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.15);
+    text-decoration: none;
+    text-align: center;
+  }
+
+  /* Десктоп: окошко по центру */
+  @media (min-width: 481px) {
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at center, #122544 0%, #050d1c 100%);
+    }
+    .app {
+      height: min(100dvh, 900px);
+      border-radius: 24px;
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6);
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ============= LOADER ============= -->
+  <div id="loaderScreen" class="screen active">
+    <div class="stars"></div>
+    <div class="loader-header">
+      <div class="mission-tag" data-i18n="tag">STTM · Mission 4</div>
+      <h1 class="loader-title" data-i18n="title">ATMOSPHERE</h1>
+    </div>
+    <div class="progress-block" id="progressBlock">
+      <div class="rocket-track">
+        <div class="rocket-icon" id="rocketIcon" style="left: 0%;">
+          <svg class="rocket-icon-inner" viewBox="0 0 40 60" width="36" height="54">
+            <defs>
+              <linearGradient id="bodyGrad" x1="0" x2="1">
+                <stop offset="0" stop-color="#fff5e6"/>
+                <stop offset="1" stop-color="#e8d8c0"/>
+              </linearGradient>
+            </defs>
+            <path d="M20 4 Q12 14 12 28 L12 42 L28 42 L28 28 Q28 14 20 4 Z" fill="url(#bodyGrad)" stroke="#3a5670" stroke-width="1.5"/>
+            <path d="M20 4 Q24 12 28 24 L20 18 L12 24 Q16 12 20 4 Z" fill="#FFA91F"/>
+            <circle cx="20" cy="24" r="4.5" fill="#5fb3c4" stroke="#3a5670" stroke-width="1"/>
+            <path d="M12 36 L4 44 L4 50 L12 46 Z" fill="#FFA91F" stroke="#3a5670" stroke-width="1"/>
+            <path d="M28 36 L36 44 L36 50 L28 46 Z" fill="#FFA91F" stroke="#3a5670" stroke-width="1"/>
+            <path d="M16 42 L20 56 L24 42 Z" fill="#FFA91F" opacity="0.9"/>
+          </svg>
+        </div>
+      </div>
+      <div class="bar-container"><div class="bar-fill" id="barFill"></div></div>
+      <div class="status">
+        <span class="status-text" id="statusText" data-i18n="loading">Loading…</span>
+        <span class="status-percent" id="statusPercent">0%</span>
+      </div>
+      <button class="retry-btn" id="retryBtn" data-i18n="retry">Retry</button>
+    </div>
+  </div>
+
+  <!-- ============= GAME ============= -->
+  <div id="gameScreen" class="screen">
+    <canvas id="canvas"></canvas>
+    <div class="hud">
+      <div class="hud-top">
+        <div class="lives" id="lives">
+          <!-- сердечки заполнятся через JS -->
+        </div>
+        <div class="score" id="score">0</div>
+      </div>
+      <div class="speed-meter">
+        <div class="meter-indicator" id="meterIndicator" style="bottom: 0%;"></div>
+      </div>
+      <div class="layer-overlay" id="layerOverlay">
+        <div class="layer-name" id="layerName"></div>
+        <div class="layer-sub" id="layerSub"></div>
+      </div>
+      <div class="hint" id="hint" data-i18n="hint">TAP TO FLY</div>
+    </div>
+  </div>
+
+  <!-- ============= GAME OVER ============= -->
+  <div id="gameOverScreen" class="screen modal">
+    <div class="modal-content">
+      <div class="modal-icon">💥</div>
+      <h2 class="modal-title" data-i18n="gameOver">Mission Failed</h2>
+      <div class="modal-score" data-i18n="finalScore">Final Score</div>
+      <div class="modal-score-value" id="finalScore">0</div>
+      <div class="modal-buttons">
+        <button class="modal-btn primary" id="restartBtn" data-i18n="tryAgain">Try Again</button>
+        <a class="modal-btn secondary" href="index.html" data-i18n="menu">Menu</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============= WIN ============= -->
+  <div id="winScreen" class="screen modal">
+    <div class="modal-content">
+      <div class="modal-icon">🚀</div>
+      <h2 class="modal-title" data-i18n="missionComplete">Mission Complete!</h2>
+      <div class="modal-score" data-i18n="finalScore">Final Score</div>
+      <div class="modal-score-value" id="finalScoreWin">100</div>
+      <div class="modal-buttons">
+        <button class="modal-btn primary" id="restartBtnWin" data-i18n="playAgain">Play Again</button>
+        <a class="modal-btn secondary" href="index.html" data-i18n="menu">Menu</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// ===================== I18N =================================
+// ============================================================
+const I18N = {
+  uz: {
+    tag: "STTM · Missiya 4", title: "ATMOSFERA",
+    loading: "Yuklanmoqda…", ready: "Tayyor!", error: "Yuklash xatosi", retry: "Qayta urinish",
+    hint: "BOSING — UCHISH",
+    gameOver: "Missiya muvaffaqiyatsiz",
+    missionComplete: "Missiya bajarildi!",
+    finalScore: "Yakuniy ball",
+    tryAgain: "Qayta urinish", playAgain: "Yana o'ynash", menu: "Menyu",
+    layers: ["Troposfera","Stratosfera","Mezosfera","Termosfera","Ekzosfera"],
+    layerSubs: ["0–12 km","12–50 km","50–85 km","85–600 km","600+ km"]
+  },
+  ru: {
+    tag: "STTM · Миссия 4", title: "АТМОСФЕРА",
+    loading: "Загрузка…", ready: "Готово!", error: "Ошибка загрузки", retry: "Повторить",
+    hint: "НАЖИМАЙ — ЛЕТИ",
+    gameOver: "Миссия провалена",
+    missionComplete: "Миссия выполнена!",
+    finalScore: "Итоговый счёт",
+    tryAgain: "Попробовать снова", playAgain: "Сыграть снова", menu: "Меню",
+    layers: ["Тропосфера","Стратосфера","Мезосфера","Термосфера","Экзосфера"],
+    layerSubs: ["0–12 км","12–50 км","50–85 км","85–600 км","600+ км"]
+  },
+  en: {
+    tag: "STTM · Mission 4", title: "ATMOSPHERE",
+    loading: "Loading…", ready: "Ready!", error: "Load failed", retry: "Retry",
+    hint: "TAP TO FLY",
+    gameOver: "Mission Failed",
+    missionComplete: "Mission Complete!",
+    finalScore: "Final Score",
+    tryAgain: "Try Again", playAgain: "Play Again", menu: "Menu",
+    layers: ["Troposphere","Stratosphere","Mesosphere","Thermosphere","Exosphere"],
+    layerSubs: ["0–12 km","12–50 km","50–85 km","85–600 km","600+ km"]
+  }
+};
+
+let currentLang = 'en';
+try {
+  const saved = localStorage.getItem('sttm_lang');
+  if (saved && I18N[saved]) currentLang = saved;
+} catch (e) {}
+document.documentElement.lang = currentLang;
+const t = (key) => I18N[currentLang][key] || I18N.en[key];
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (I18N[currentLang][key]) el.textContent = I18N[currentLang][key];
+  });
+}
+applyI18n();
+
+// ============================================================
+// =============== STTM PLATFORM INTEGRATION ==================
+// ============================================================
+const nickname = new URLSearchParams(window.location.search).get('nickname') || null;
+
+function submitScore(score) {
+  try {
+    window.parent.postMessage({ type: 'SUBMIT_SCORE', score: score }, '*');
+  } catch (e) { /* iframe-only */ }
+}
+
+// ============================================================
+// ===================== ASSET LOADER =========================
+// ============================================================
+const ASSETS = [
+  { key: 'fon',          src: 'assets/fon_1.webp'        },
+  { key: 'earth',        src: 'assets/earth.webp'        },
+  { key: 'rocket',       src: 'assets/rocket.png'        },
+  { key: 'cloud',        src: 'assets/claud.png'         },
+  { key: 'airplane',     src: 'assets/airplane.png'      },
+  { key: 'comet',        src: 'assets/comet.png'         },
+  { key: 'satellite_pv', src: 'assets/satellite_pv.webp' },
+  { key: 'iss',          src: 'assets/ics.png'           }
+];
+
+const MIN_LOAD_MS = 1200;
+const LOAD_TIMEOUT_MS = 6000;
+const images = {};
+
+function loadAssets() {
+  return new Promise((resolve) => {
+    let loaded = 0, failed = 0;
+    const start = performance.now();
+    const barFill = document.getElementById('barFill');
+    const rocketIcon = document.getElementById('rocketIcon');
+    const statusPercent = document.getElementById('statusPercent');
+    const statusText = document.getElementById('statusText');
+    const progressBlock = document.getElementById('progressBlock');
+
+    function update() {
+      const done = loaded + failed;
+      const pct = (done / ASSETS.length) * 100;
+      barFill.style.width = pct + '%';
+      rocketIcon.style.left = pct + '%';
+      statusPercent.textContent = Math.round(pct) + '%';
+    }
+
+    function finalize() {
+      const elapsed = performance.now() - start;
+      const delay = Math.max(0, MIN_LOAD_MS - elapsed);
+      setTimeout(() => {
+        if (failed > 0) {
+          progressBlock.classList.add('error');
+          statusText.textContent = t('error');
+        } else {
+          statusText.textContent = t('ready');
+          setTimeout(resolve, 350);
+        }
+      }, delay);
+    }
+
+    ASSETS.forEach(asset => {
+      const img = new Image();
+      let settled = false;
+      const finish = (ok) => {
+        if (settled) return;
+        settled = true;
+        if (ok) { images[asset.key] = img; loaded++; }
+        else    { failed++; console.warn('[loader] Failed:', asset.src); }
+        update();
+        if (loaded + failed === ASSETS.length) finalize();
+      };
+      img.onload = () => finish(true);
+      img.onerror = () => finish(false);
+      setTimeout(() => finish(false), LOAD_TIMEOUT_MS);
+      img.src = asset.src;
+    });
+
+    document.getElementById('retryBtn').addEventListener('click', () => {
+      location.reload();
+    });
+  });
+}
+
+// ============================================================
+// ====================== GAME CONFIG =========================
+// ============================================================
+const CONFIG = {
+  // Физика
+  GRAVITY: 245,           // px/sec² - постоянное замедление подъёма
+  THRUST_IMPULSE: 175,    // мгновенный прирост скорости при тапе
+  MAX_VY: 340,            // максимальная скорость подъёма
+  MIN_VY: -180,           // насколько ракета может "проседать" вниз
+
+  // Ракета
+  ROCKET_W: 56,           // ширина спрайта на экране
+  ROCKET_H: 95,           // высота спрайта
+  ROCKET_REST_Y_RATIO: 0.62,  // базовая Y-позиция ракеты (62% от высоты экрана)
+  ROCKET_FALL_LIMIT: 0.30,    // на сколько % высоты экрана может упасть → game over
+
+  // Препятствия
+  OBSTACLE_BASE_SPEED: 65,    // горизонтальная скорость препятствий
+  OBSTACLE_SPEED_PER_LAYER: 8, // прирост скорости с каждым слоем
+  OBSTACLE_HITBOX_SHRINK: 0.72, // hitbox меньше спрайта для милосердия
+
+  // Слои
+  LAYER_HEIGHT_WORLD: 1400,   // мировых пикселей на один слой
+  LAYER_TRANSITION_DURATION: 1.7, // сек показа названия слоя
+
+  // Жизни
+  LIVES: 3,
+  INVINCIBLE_DURATION: 1.2,   // сек неуязвимости после попадания
+
+  // Очки
+  SCORE_PER_LAYER: 20         // 5 слоёв × 20 = 100 максимум
+};
+
+// Конфигурация препятствий по слоям
+const LAYERS = [
+  { asset: 'cloud',        count: 4, size: 95 },
+  { asset: 'airplane',     count: 4, size: 90 },
+  { asset: 'comet',        count: 5, size: 75 },
+  { asset: 'satellite_pv', count: 4, size: 85 },
+  { asset: 'iss',          count: 3, size: 110 }
+];
+
+// Цветовая палитра фона по слоям (снизу вверх)
+// Каждая запись — два цвета: верх и низ для градиента
+const SKY_COLORS = [
+  ['#6ea8d5', '#a3c9e6'],  // тропосфера: светло-голубой
+  ['#3a6fa5', '#6ea8d5'],  // стратосфера: средне-синий
+  ['#1a3560', '#3a6fa5'],  // мезосфера: тёмно-синий
+  ['#0a1a30', '#1a3560'],  // термосфера: ночь
+  ['#050a18', '#0a1a30']   // экзосфера: космос
+];
+
+// ============================================================
+// ===================== GAME STATE ===========================
+// ============================================================
+const state = {
+  screen: 'loading',
+  canvas: null,
+  ctx: null,
+  W: 0, H: 0, dpr: 1,
+
+  // Ракета
+  rocketVy: 0,
+  rocketYOffset: 0,  // насколько ракета сместилась вниз от базовой Y
+
+  // Мир
+  worldScroll: 0,      // сколько мировых px прокручено
+  currentLayer: 0,     // 0..4
+  layerTransitionT: 0, // время показа названия слоя (сек)
+
+  // Препятствия
+  obstacles: [],
+
+  // UI
+  lives: CONFIG.LIVES,
+  score: 0,
+  invincibleT: 0,
+  firstTap: false,     // показывать ли подсказку
+
+  // Звёзды для фона
+  stars: [],
+
+  // Анимация смерти
+  deathT: 0
+};
+
+// ============================================================
+// ===================== CANVAS SETUP =========================
+// ============================================================
+function setupCanvas() {
+  state.canvas = document.getElementById('canvas');
+  state.ctx = state.canvas.getContext('2d');
+  resize();
+  window.addEventListener('resize', resize);
+}
+
+function resize() {
+  const c = state.canvas;
+  const parent = c.parentElement;
+  const w = parent.clientWidth;
+  const h = parent.clientHeight;
+  state.dpr = window.devicePixelRatio || 1;
+  c.width  = w * state.dpr;
+  c.height = h * state.dpr;
+  c.style.width  = w + 'px';
+  c.style.height = h + 'px';
+  state.ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+  state.W = w;
+  state.H = h;
+}
+
+// ============================================================
+// =================== STAR GENERATION ========================
+// ============================================================
+function generateStars() {
+  state.stars = [];
+  // Звёзды в "мировом" пространстве, занимают от высоты слоя 2 (мезосфера) и выше
+  const startY = CONFIG.LAYER_HEIGHT_WORLD * 2;
+  const totalH = CONFIG.LAYER_HEIGHT_WORLD * 3.5; // мезо + термо + экзо + запас
+  for (let i = 0; i < 120; i++) {
+    state.stars.push({
+      x: Math.random() * state.W,
+      y: startY + Math.random() * totalH,
+      size: Math.random() < 0.7 ? 1 : 2,
+      brightness: 0.4 + Math.random() * 0.6,
+      parallax: 0.4 + Math.random() * 0.5  // 0.4-0.9
+    });
+  }
+}
+
+// ============================================================
+// ================== OBSTACLE SPAWN ==========================
+// ============================================================
+function spawnLayerObstacles(layerIdx) {
+  if (layerIdx >= LAYERS.length) return;
+  const cfg = LAYERS[layerIdx];
+  const layerWorldStart = layerIdx * CONFIG.LAYER_HEIGHT_WORLD;
+  const spacing = CONFIG.LAYER_HEIGHT_WORLD / cfg.count;
+  const speed = CONFIG.OBSTACLE_BASE_SPEED + layerIdx * CONFIG.OBSTACLE_SPEED_PER_LAYER;
+
+  for (let i = 0; i < cfg.count; i++) {
+    // Y - в пределах слоя, с небольшим джиттером
+    const y = layerWorldStart + spacing * (i + 0.4) + (Math.random() - 0.5) * spacing * 0.3;
+    // Размер с небольшим разбросом
+    const size = cfg.size * (0.85 + Math.random() * 0.3);
+    state.obstacles.push({
+      x: 20 + Math.random() * (state.W - size - 40),
+      worldY: y,
+      w: size,
+      h: size * 0.78,
+      dirX: Math.random() < 0.5 ? -1 : 1,
+      speed: speed,
+      asset: cfg.asset,
+      hit: false,
+      layer: layerIdx
+    });
+  }
+}
+
+// ============================================================
+// ===================== INPUT ================================
+// ============================================================
+function setupInput() {
+  const onTap = (e) => {
+    if (e) { e.preventDefault(); }
+    if (state.screen !== 'playing') return;
+    state.rocketVy = Math.min(CONFIG.MAX_VY, state.rocketVy + CONFIG.THRUST_IMPULSE);
+    if (!state.firstTap) {
+      state.firstTap = true;
+      document.getElementById('hint').classList.add('hidden');
+    }
+  };
+
+  state.canvas.addEventListener('touchstart', onTap, { passive: false });
+  state.canvas.addEventListener('mousedown', onTap);
+
+  // Restart кнопки
+  document.getElementById('restartBtn').addEventListener('click', restartGame);
+  document.getElementById('restartBtnWin').addEventListener('click', restartGame);
+
+  // Visibility change — сброс delta
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) lastTime = 0;
+  });
+}
+
+// ============================================================
+// ====================== GAME FLOW ===========================
+// ============================================================
+function startGame() {
+  state.screen = 'playing';
+  state.rocketVy = 90;  // лёгкий стартовый импульс — секунда на ориентацию
+  state.rocketYOffset = 0;
+  state.worldScroll = 0;
+  state.currentLayer = 0;
+  state.layerTransitionT = CONFIG.LAYER_TRANSITION_DURATION;
+  state.obstacles = [];
+  state.lives = CONFIG.LIVES;
+  state.score = 0;
+  state.invincibleT = 0;
+  state.firstTap = false;
+  state.deathT = 0;
+
+  renderLives();
+  document.getElementById('score').textContent = '0';
+  document.getElementById('hint').classList.remove('hidden');
+  showLayerOverlay(0);
+
+  showScreen('gameScreen');
+  // Canvas получает размер только когда экран виден
+  resize();
+  generateStars();
+  spawnLayerObstacles(0);
+}
+
+function restartGame() {
+  document.getElementById('gameOverScreen').classList.remove('active');
+  document.getElementById('winScreen').classList.remove('active');
+  startGame();
+}
+
+function showScreen(id) {
+  ['loaderScreen','gameScreen'].forEach(s => {
+    document.getElementById(s).classList.remove('active');
+  });
+  document.getElementById(id).classList.add('active');
+}
+
+function gameOver() {
+  if (state.screen === 'gameover') return;
+  state.screen = 'gameover';
+  submitScore(state.score);
+  document.getElementById('finalScore').textContent = state.score;
+  setTimeout(() => {
+    document.getElementById('gameOverScreen').classList.add('active');
+  }, 600);
+}
+
+function win() {
+  if (state.screen === 'win') return;
+  state.screen = 'win';
+  submitScore(state.score);
+  document.getElementById('finalScoreWin').textContent = state.score;
+  setTimeout(() => {
+    document.getElementById('winScreen').classList.add('active');
+  }, 800);
+}
+
+// ============================================================
+// ====================== UI HELPERS ==========================
+// ============================================================
+function renderLives() {
+  const heartSvg = `<svg class="heart" viewBox="0 0 24 22" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 21s-8-5.5-8-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.5-8 12-8 12-1 0-2 0-2 0z"
+          fill="#ef4444" stroke="#7a1a1a" stroke-width="1.2"/>
+  </svg>`;
+  const lives = document.getElementById('lives');
+  lives.innerHTML = '';
+  for (let i = 0; i < CONFIG.LIVES; i++) {
+    const wrap = document.createElement('span');
+    wrap.innerHTML = heartSvg;
+    const heart = wrap.firstChild;
+    if (i >= state.lives) heart.classList.add('lost');
+    lives.appendChild(heart);
+  }
+}
+
+function flashLifeLost() {
+  const hearts = document.getElementById('lives').querySelectorAll('.heart');
+  const lostIdx = state.lives;  // только что потеряли — это новый индекс
+  if (hearts[lostIdx]) {
+    hearts[lostIdx].classList.add('flash');
+    setTimeout(() => {
+      hearts[lostIdx].classList.add('lost');
+      hearts[lostIdx].classList.remove('flash');
+    }, 200);
+  }
+}
+
+function bumpScore() {
+  const el = document.getElementById('score');
+  el.classList.remove('bump');
+  void el.offsetWidth; // force reflow
+  el.classList.add('bump');
+}
+
+function showLayerOverlay(layerIdx) {
+  const overlay = document.getElementById('layerOverlay');
+  document.getElementById('layerName').textContent = I18N[currentLang].layers[layerIdx];
+  document.getElementById('layerSub').textContent  = I18N[currentLang].layerSubs[layerIdx];
+  overlay.classList.add('show');
+  state.layerTransitionT = CONFIG.LAYER_TRANSITION_DURATION;
+}
+
+// ============================================================
+// ====================== UPDATE ==============================
+// ============================================================
+function update(dt) {
+  if (state.screen !== 'playing') return;
+
+  // Layer transition timer (только UI, физика идёт)
+  if (state.layerTransitionT > 0) {
+    state.layerTransitionT -= dt;
+    if (state.layerTransitionT <= 0) {
+      document.getElementById('layerOverlay').classList.remove('show');
+    }
+  }
+
+  // Invincibility
+  if (state.invincibleT > 0) {
+    state.invincibleT -= dt;
+  }
+
+  // === Физика ракеты ===
+  // Гравитация всегда тянет вниз
+  state.rocketVy -= CONFIG.GRAVITY * dt;
+  if (state.rocketVy < CONFIG.MIN_VY) state.rocketVy = CONFIG.MIN_VY;
+  if (state.rocketVy > CONFIG.MAX_VY) state.rocketVy = CONFIG.MAX_VY;
+
+  // === Прокрутка мира / движение ракеты ===
+  if (state.rocketVy >= 0) {
+    // Подъём: мир прокручивается, ракета возвращается к базовой Y
+    state.worldScroll += state.rocketVy * dt;
+    state.rocketYOffset *= Math.max(0, 1 - 4 * dt); // плавный возврат к 0
+  } else {
+    // Падение: ракета смещается вниз на экране
+    state.rocketYOffset += (-state.rocketVy) * dt;
+    const fallLimit = state.H * CONFIG.ROCKET_FALL_LIMIT;
+    if (state.rocketYOffset >= fallLimit) {
+      state.rocketYOffset = fallLimit;
+      gameOver();
+      return;
+    }
+  }
+
+  // === Переход слоя ===
+  const layerScrollStart = state.currentLayer * CONFIG.LAYER_HEIGHT_WORLD;
+  if (state.worldScroll >= layerScrollStart + CONFIG.LAYER_HEIGHT_WORLD) {
+    state.currentLayer++;
+    state.score += CONFIG.SCORE_PER_LAYER;
+    document.getElementById('score').textContent = state.score;
+    bumpScore();
+    submitScore(state.score);
+
+    if (state.currentLayer >= LAYERS.length) {
+      win();
+      return;
+    }
+    showLayerOverlay(state.currentLayer);
+    spawnLayerObstacles(state.currentLayer);
+  }
+
+  // === Препятствия ===
+  const rocketScreenX = state.W / 2;
+  const rocketScreenY = state.H * CONFIG.ROCKET_REST_Y_RATIO + state.rocketYOffset;
+  const rocketBox = {
+    x: rocketScreenX - CONFIG.ROCKET_W / 2 + CONFIG.ROCKET_W * 0.18,
+    y: rocketScreenY - CONFIG.ROCKET_H / 2 + CONFIG.ROCKET_H * 0.18,
+    w: CONFIG.ROCKET_W * 0.64,
+    h: CONFIG.ROCKET_H * 0.64
+  };
+
+  for (let i = state.obstacles.length - 1; i >= 0; i--) {
+    const ob = state.obstacles[i];
+
+    // Горизонтальное движение со скоростью + отскок от краёв
+    ob.x += ob.dirX * ob.speed * dt;
+    if (ob.x < 10) { ob.x = 10; ob.dirX *= -1; }
+    if (ob.x + ob.w > state.W - 10) { ob.x = state.W - 10 - ob.w; ob.dirX *= -1; }
+
+    // Y-позиция на экране = базовая Y + (мировая Y препятствия - текущий scroll) обратно
+    // Препятствия "уезжают вниз" по мере подъёма ракеты
+    const baseScreenY = state.H * CONFIG.ROCKET_REST_Y_RATIO;
+    const screenY = baseScreenY - (ob.worldY - state.worldScroll);
+
+    // Удаляем если ушло далеко вниз
+    if (screenY > state.H + 200) {
+      state.obstacles.splice(i, 1);
+      continue;
+    }
+
+    // Collision check
+    if (!ob.hit && state.invincibleT <= 0 && screenY > -50 && screenY < state.H + 50) {
+      const sh = CONFIG.OBSTACLE_HITBOX_SHRINK;
+      const obBox = {
+        x: ob.x + ob.w * (1 - sh) / 2,
+        y: screenY - ob.h / 2 + ob.h * (1 - sh) / 2,
+        w: ob.w * sh,
+        h: ob.h * sh
+      };
+      if (boxIntersect(rocketBox, obBox)) {
+        ob.hit = true;
+        onCollision();
+      }
+    }
+  }
+}
+
+function boxIntersect(a, b) {
+  return !(a.x + a.w < b.x || b.x + b.w < a.x ||
+           a.y + a.h < b.y || b.y + b.h < a.y);
+}
+
+function onCollision() {
+  state.lives--;
+  flashLifeLost();
+  state.invincibleT = CONFIG.INVINCIBLE_DURATION;
+  // Лёгкий шок ракеты вниз
+  state.rocketVy = Math.min(state.rocketVy, 0);
+
+  if (state.lives <= 0) {
+    gameOver();
+  }
+}
+
+// ============================================================
+// ====================== RENDER ==============================
+// ============================================================
+function render() {
+  const ctx = state.ctx;
+  const W = state.W, H = state.H;
+
+  // === Фон: интерполяция между слоями ===
+  const layerProgress = Math.min(LAYERS.length - 1,
+    state.worldScroll / CONFIG.LAYER_HEIGHT_WORLD);
+  const fromIdx = Math.floor(layerProgress);
+  const toIdx = Math.min(SKY_COLORS.length - 1, fromIdx + 1);
+  const f = layerProgress - fromIdx;
+  const topColor = lerpColor(SKY_COLORS[fromIdx][0], SKY_COLORS[toIdx][0], f);
+  const botColor = lerpColor(SKY_COLORS[fromIdx][1], SKY_COLORS[toIdx][1], f);
+
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, topColor);
+  grad.addColorStop(1, botColor);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // === Звёзды (только когда поднялись в верхние слои) ===
+  if (state.worldScroll > CONFIG.LAYER_HEIGHT_WORLD * 1.5) {
+    const starOpacity = Math.min(1,
+      (state.worldScroll - CONFIG.LAYER_HEIGHT_WORLD * 1.5) / CONFIG.LAYER_HEIGHT_WORLD);
+    ctx.save();
+    ctx.globalAlpha = starOpacity * 0.85;
+    for (const s of state.stars) {
+      // parallax: ближние звёзды двигаются быстрее
+      const screenY = (s.y - state.worldScroll * s.parallax) % (H * 3);
+      const drawY = screenY < 0 ? screenY + H * 3 : screenY;
+      if (drawY < -10 || drawY > H + 10) continue;
+      ctx.globalAlpha = starOpacity * s.brightness;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(s.x, drawY, s.size, s.size);
+    }
+    ctx.restore();
+  }
+
+  // === Земля внизу (только в самом начале) ===
+  const earthImg = images.earth;
+  if (earthImg && state.worldScroll < CONFIG.LAYER_HEIGHT_WORLD * 0.6) {
+    const earthSize = W * 1.1;
+    const earthScreenY = H + earthSize * 0.3 - state.worldScroll * 0.85;
+    if (earthScreenY > H - earthSize) {
+      ctx.drawImage(earthImg,
+        W / 2 - earthSize / 2,
+        earthScreenY - earthSize,
+        earthSize, earthSize);
+    }
+  }
+
+  // === Препятствия ===
+  for (const ob of state.obstacles) {
+    const baseScreenY = state.H * CONFIG.ROCKET_REST_Y_RATIO;
+    const screenY = baseScreenY - (ob.worldY - state.worldScroll);
+    if (screenY < -ob.h || screenY > H + ob.h) continue;
+
+    const img = images[ob.asset];
+    if (img) {
+      ctx.save();
+      if (ob.hit) ctx.globalAlpha = 0.5;
+      ctx.drawImage(img, ob.x, screenY - ob.h / 2, ob.w, ob.h);
+      ctx.restore();
+    } else {
+      // fallback — нарисуем круг
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(ob.x + ob.w / 2, screenY, ob.w / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // === Ракета ===
+  const rocketImg = images.rocket;
+  const rx = W / 2;
+  const ry = H * CONFIG.ROCKET_REST_Y_RATIO + state.rocketYOffset;
+
+  // Мигание при неуязвимости
+  let drawRocket = true;
+  if (state.invincibleT > 0) {
+    drawRocket = Math.floor(state.invincibleT * 10) % 2 === 0;
+  }
+
+  if (drawRocket && rocketImg) {
+    // Огонь под ракетой (только когда летим вверх)
+    if (state.rocketVy > 30) {
+      const intensity = Math.min(1, state.rocketVy / CONFIG.MAX_VY);
+      drawRocketFlame(ctx, rx, ry + CONFIG.ROCKET_H * 0.45, intensity);
+    }
+
+    // Лёгкий наклон в зависимости от vy
+    const tilt = -state.rocketVy / CONFIG.MAX_VY * 0.08;
+    ctx.save();
+    ctx.translate(rx, ry);
+    ctx.rotate(tilt);
+    ctx.drawImage(rocketImg,
+      -CONFIG.ROCKET_W / 2,
+      -CONFIG.ROCKET_H / 2,
+      CONFIG.ROCKET_W, CONFIG.ROCKET_H);
+    ctx.restore();
+  }
+
+  // === Шкала скорости — обновляем индикатор ===
+  const vyRatio = (state.rocketVy - CONFIG.MIN_VY) / (CONFIG.MAX_VY - CONFIG.MIN_VY);
+  const indicatorPct = Math.max(0, Math.min(1, vyRatio)) * 100;
+  const indicator = document.getElementById('meterIndicator');
+  if (indicator) indicator.style.bottom = indicatorPct + '%';
+}
+
+function drawRocketFlame(ctx, x, y, intensity) {
+  const flameH = 22 + Math.random() * 8 + intensity * 18;
+  const flameW = 18;
+  ctx.save();
+  // Внешний огонь
+  const grad = ctx.createRadialGradient(x, y, 2, x, y + flameH * 0.4, flameH);
+  grad.addColorStop(0, 'rgba(255,255,200,' + (0.9 * intensity) + ')');
+  grad.addColorStop(0.3, 'rgba(255,169,31,' + (0.85 * intensity) + ')');
+  grad.addColorStop(1, 'rgba(255,80,0,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(x, y + flameH * 0.4, flameW / 2, flameH / 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// Lerp между двумя HEX-цветами
+function lerpColor(c1, c2, f) {
+  const a = parseInt(c1.slice(1), 16);
+  const b = parseInt(c2.slice(1), 16);
+  const r1 = (a >> 16) & 255, g1 = (a >> 8) & 255, b1 = a & 255;
+  const r2 = (b >> 16) & 255, g2 = (b >> 8) & 255, b2 = b & 255;
+  const r = Math.round(r1 + (r2 - r1) * f);
+  const g = Math.round(g1 + (g2 - g1) * f);
+  const bb = Math.round(b1 + (b2 - b1) * f);
+  return 'rgb(' + r + ',' + g + ',' + bb + ')';
+}
+
+// ============================================================
+// ====================== GAME LOOP ===========================
+// ============================================================
+let lastTime = 0;
+function loop(time) {
+  if (!lastTime) lastTime = time;
+  const dt = Math.min(0.05, (time - lastTime) / 1000);
+  lastTime = time;
+
+  update(dt);
+  render();
+
+  requestAnimationFrame(loop);
+}
+
+// ============================================================
+// ===================== BOOTSTRAP ============================
+// ============================================================
+async function init() {
+  setupCanvas();
+  setupInput();
+  await loadAssets();
+  startGame();
+  requestAnimationFrame(loop);
+}
+
+init();
+</script>
+
+</body>
+</html>
