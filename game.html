@@ -319,6 +319,20 @@
     letter-spacing: 0.04em;
     margin-bottom: 12px;
   }
+  .player-tag {
+    display: inline-block;
+    margin-bottom: 20px;
+    padding: 6px 14px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+  }
+  .player-tag.empty { display: none; }
   .modal-score {
     font-size: 14px;
     letter-spacing: 0.2em;
@@ -448,6 +462,7 @@
     <div class="modal-content">
       <div class="modal-icon">💥</div>
       <h2 class="modal-title" data-i18n="gameOver">Mission Failed</h2>
+      <div class="player-tag" id="playerTagOver"></div>
       <div class="modal-score" data-i18n="finalScore">Final Score</div>
       <div class="modal-score-value" id="finalScore">0</div>
       <div class="modal-buttons">
@@ -462,6 +477,7 @@
     <div class="modal-content">
       <div class="modal-icon">🚀</div>
       <h2 class="modal-title" data-i18n="missionComplete">Mission Complete!</h2>
+      <div class="player-tag" id="playerTagWin"></div>
       <div class="modal-score" data-i18n="finalScore">Final Score</div>
       <div class="modal-score-value" id="finalScoreWin">100</div>
       <div class="modal-buttons">
@@ -534,9 +550,12 @@ applyI18n();
 // ============================================================
 // =============== STTM PLATFORM INTEGRATION ==================
 // ============================================================
-const nickname = new URLSearchParams(window.location.search).get('nickname') || null;
+const nickname = new URLSearchParams(window.location.search).get('nickname') || 'Player';
 
+let lastSubmittedScore = -1;
 function submitScore(score) {
+  if (score === lastSubmittedScore) return;  // защита от повторной отправки того же значения
+  lastSubmittedScore = score;
   try {
     window.parent.postMessage({ type: 'SUBMIT_SCORE', score: score }, '*');
   } catch (e) { /* iframe-only */ }
@@ -826,6 +845,7 @@ function startGame() {
   state.invincibleT = 0;
   state.firstTap = false;
   state.deathT = 0;
+  lastSubmittedScore = -1;  // сбрасываем чтобы при рестарте счёт мог быть отправлен заново
 
   renderLives();
   document.getElementById('score').textContent = '0';
@@ -857,6 +877,7 @@ function gameOver() {
   state.screen = 'gameover';
   submitScore(state.score);
   document.getElementById('finalScore').textContent = state.score;
+  updatePlayerTag('playerTagOver');
   setTimeout(() => {
     document.getElementById('gameOverScreen').classList.add('active');
   }, 600);
@@ -867,9 +888,23 @@ function win() {
   state.screen = 'win';
   submitScore(state.score);
   document.getElementById('finalScoreWin').textContent = state.score;
+  updatePlayerTag('playerTagWin');
   setTimeout(() => {
     document.getElementById('winScreen').classList.add('active');
   }, 800);
+}
+
+function updatePlayerTag(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  // Показываем только если ник передан через URL (а не 'Player' по умолчанию без параметра)
+  const hasNick = !!new URLSearchParams(window.location.search).get('nickname');
+  if (hasNick) {
+    el.textContent = nickname;
+    el.classList.remove('empty');
+  } else {
+    el.classList.add('empty');
+  }
 }
 
 // ============================================================
