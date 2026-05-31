@@ -649,12 +649,13 @@ const CONFIG = {
 };
 
 // Конфигурация препятствий по слоям
+// flip: true — спрайт зеркалится горизонтально когда движется справа налево
 const LAYERS = [
-  { asset: 'cloud',        count: 10, size: 95  },
-  { asset: 'airplane',     count: 10, size: 90  },
-  { asset: 'comet',        count: 10, size: 75  },
-  { asset: 'satellite_pv', count: 10, size: 85  },
-  { asset: 'iss',          count: 9,  size: 110 }
+  { asset: 'cloud',        count: 10, size: 95,  flip: false },
+  { asset: 'airplane',     count: 10, size: 90,  flip: true  },
+  { asset: 'comet',        count: 10, size: 75,  flip: false },
+  { asset: 'satellite_pv', count: 10, size: 85,  flip: false },
+  { asset: 'iss',          count: 9,  size: 110, flip: false }
 ];
 
 // Цветовая палитра фона по слоям (снизу вверх)
@@ -775,6 +776,7 @@ function spawnLayerObstacles(layerIdx) {
       dirX: Math.random() < 0.5 ? -1 : 1,
       speed: speed,
       asset: cfg.asset,
+      flip: cfg.flip || false,
       hit: false,
       layer: layerIdx
     });
@@ -1121,7 +1123,17 @@ function render() {
     if (img) {
       ctx.save();
       if (ob.hit) ctx.globalAlpha = 0.5;
-      ctx.drawImage(img, ob.x, screenY - ob.h / 2, ob.w, ob.h);
+
+      if (ob.flip && ob.dirX > 0) {
+        // Зеркалирование по горизонтали — спрайт нарисован носом влево,
+        // зеркалим когда летит вправо
+        ctx.translate(ob.x + ob.w / 2, screenY);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, -ob.w / 2, -ob.h / 2, ob.w, ob.h);
+      } else {
+        ctx.drawImage(img, ob.x, screenY - ob.h / 2, ob.w, ob.h);
+      }
+
       ctx.restore();
     } else {
       // fallback — нарисуем круг
