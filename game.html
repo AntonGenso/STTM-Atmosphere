@@ -632,12 +632,12 @@ const CONFIG = {
   ROCKET_FALL_LIMIT: 0.30,    // на сколько % высоты экрана может упасть → game over
 
   // Препятствия
-  OBSTACLE_BASE_SPEED: 65,    // горизонтальная скорость препятствий
-  OBSTACLE_SPEED_PER_LAYER: 8, // прирост скорости с каждым слоем
+  OBSTACLE_BASE_SPEED: 55,    // горизонтальная скорость препятствий
+  OBSTACLE_SPEED_PER_LAYER: 5, // прирост скорости с каждым слоем (совсем слегка)
   OBSTACLE_HITBOX_SHRINK: 0.72, // hitbox меньше спрайта для милосердия
 
   // Слои
-  LAYER_HEIGHT_WORLD: 1400,   // мировых пикселей на один слой
+  LAYER_HEIGHT_WORLD: 1500,   // мировых пикселей на один слой
   LAYER_TRANSITION_DURATION: 1.7, // сек показа названия слоя
 
   // Жизни
@@ -650,10 +650,10 @@ const CONFIG = {
 
 // Конфигурация препятствий по слоям
 const LAYERS = [
-  { asset: 'cloud',        count: 4, size: 95 },
-  { asset: 'airplane',     count: 4, size: 90 },
-  { asset: 'comet',        count: 5, size: 75 },
-  { asset: 'satellite_pv', count: 4, size: 85 },
+  { asset: 'cloud',        count: 3, size: 95  },
+  { asset: 'airplane',     count: 3, size: 90  },
+  { asset: 'comet',        count: 3, size: 75  },
+  { asset: 'satellite_pv', count: 3, size: 85  },
   { asset: 'iss',          count: 3, size: 110 }
 ];
 
@@ -1070,16 +1070,27 @@ function render() {
     ctx.restore();
   }
 
-  // === Земля внизу (только в самом начале) ===
+  // === Земля внизу — зафиксирована, плавно исчезает при подъёме ===
   const earthImg = images.earth;
-  if (earthImg && state.worldScroll < CONFIG.LAYER_HEIGHT_WORLD * 0.6) {
-    const earthSize = W * 1.1;
-    const earthScreenY = H + earthSize * 0.3 - state.worldScroll * 0.85;
-    if (earthScreenY > H - earthSize) {
-      ctx.drawImage(earthImg,
-        W / 2 - earthSize / 2,
-        earthScreenY - earthSize,
-        earthSize, earthSize);
+  if (earthImg) {
+    // Полностью видна в начале тропосферы, исчезает к её концу
+    const fadeStart = CONFIG.LAYER_HEIGHT_WORLD * 0.35;
+    const fadeEnd   = CONFIG.LAYER_HEIGHT_WORLD * 1.0;
+    let earthOpacity = 1;
+    if (state.worldScroll > fadeStart) {
+      earthOpacity = 1 - (state.worldScroll - fadeStart) / (fadeEnd - fadeStart);
+      earthOpacity = Math.max(0, earthOpacity);
+    }
+
+    if (earthOpacity > 0.01) {
+      const earthSize = W * 1.15;
+      const earthX = W / 2 - earthSize / 2;
+      // Зафиксирована: верхний край земли всегда на одной высоте от низа экрана
+      const earthY = H - earthSize * 0.68;
+      ctx.save();
+      ctx.globalAlpha = earthOpacity;
+      ctx.drawImage(earthImg, earthX, earthY, earthSize, earthSize);
+      ctx.restore();
     }
   }
 
