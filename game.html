@@ -677,8 +677,8 @@ const LAYERS = [
   { asset: 'iss',          count: 9,  size: 110, flip: false }
 ];
 
-// Буфер пустоты в начале каждого слоя кроме первого —
-// даёт игроку ~3 секунды на ориентацию после показа названия слоя
+// Буфер пустоты в начале каждого слоя — даёт игроку
+// время на ориентацию (после старта игры / после показа названия слоя)
 const LAYER_ENTRY_BUFFER = 600;
 
 // Цветовая палитра фона по слоям (снизу вверх)
@@ -777,8 +777,8 @@ function spawnLayerObstacles(layerIdx) {
   const cfg = LAYERS[layerIdx];
   const layerWorldStart = layerIdx * CONFIG.LAYER_HEIGHT_WORLD;
 
-  // Для слоёв 2-5 — пустой буфер в начале, чтобы первое препятствие не появлялось вплотную к ракете
-  const buffer = layerIdx > 0 ? LAYER_ENTRY_BUFFER : 0;
+  // Пустой буфер в начале каждого слоя, чтобы первое препятствие не появлялось вплотную к ракете
+  const buffer = LAYER_ENTRY_BUFFER;
   const effectiveStart  = layerWorldStart + buffer;
   const effectiveHeight = CONFIG.LAYER_HEIGHT_WORLD - buffer;
   const slotSize = effectiveHeight / cfg.count;
