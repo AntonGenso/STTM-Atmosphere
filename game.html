@@ -672,10 +672,14 @@ const CONFIG = {
 const LAYERS = [
   { asset: 'cloud',        count: 10, size: 95,  flip: false },
   { asset: 'airplane',     count: 10, size: 90,  flip: true  },
-  { asset: 'comet',        count: 10, size: 75,  flip: false },
+  { asset: 'comet',        count: 10, size: 75,  flip: true  },
   { asset: 'satellite_pv', count: 10, size: 85,  flip: false },
   { asset: 'iss',          count: 9,  size: 110, flip: false }
 ];
+
+// Буфер пустоты в начале каждого слоя кроме первого —
+// даёт игроку ~3 секунды на ориентацию после показа названия слоя
+const LAYER_ENTRY_BUFFER = 600;
 
 // Цветовая палитра фона по слоям (снизу вверх)
 // Каждая запись — два цвета: верх и низ для градиента
@@ -772,14 +776,19 @@ function spawnLayerObstacles(layerIdx) {
   if (layerIdx >= LAYERS.length) return;
   const cfg = LAYERS[layerIdx];
   const layerWorldStart = layerIdx * CONFIG.LAYER_HEIGHT_WORLD;
-  const slotSize = CONFIG.LAYER_HEIGHT_WORLD / cfg.count;
+
+  // Для слоёв 2-5 — пустой буфер в начале, чтобы первое препятствие не появлялось вплотную к ракете
+  const buffer = layerIdx > 0 ? LAYER_ENTRY_BUFFER : 0;
+  const effectiveStart  = layerWorldStart + buffer;
+  const effectiveHeight = CONFIG.LAYER_HEIGHT_WORLD - buffer;
+  const slotSize = effectiveHeight / cfg.count;
+
   const baseSpeed = CONFIG.OBSTACLE_BASE_SPEED + layerIdx * CONFIG.OBSTACLE_SPEED_PER_LAYER;
 
   for (let i = 0; i < cfg.count; i++) {
     // Y в случайной точке "слота" — даёт неравномерные расстояния между соседями
-    // (соседние могут быть как близко, так и далеко друг от друга)
-    const slotJitter = 0.15 + Math.random() * 0.7; // 15%..85% слота
-    const y = layerWorldStart + slotSize * (i + slotJitter);
+    const slotJitter = 0.15 + Math.random() * 0.7;
+    const y = effectiveStart + slotSize * (i + slotJitter);
 
     // Размер с небольшим разбросом
     const size = cfg.size * (0.85 + Math.random() * 0.3);
