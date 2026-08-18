@@ -567,16 +567,17 @@ function submitScore(score) {
 const ASSETS = [
   { key: 'fon',          src: 'assets/fon_1.webp'        },
   { key: 'earth',        src: 'assets/earth.webp'        },
-  { key: 'rocket',       src: 'assets/rocket.png'        },
-  { key: 'cloud',        src: 'assets/claud.png'         },
-  { key: 'airplane',     src: 'assets/airplane.png'      },
-  { key: 'comet',        src: 'assets/comet.png'         },
+  { key: 'rocket',       src: 'assets/rocket.webp'        },
+  { key: 'cloud',        src: 'assets/claud.webp'         },
+  { key: 'airplane',     src: 'assets/airplane.webp'      },
+  { key: 'comet',        src: 'assets/comet.webp'         },
   { key: 'satellite_pv', src: 'assets/satellite_pv.webp' },
-  { key: 'iss',          src: 'assets/ics.png'           }
+  { key: 'iss',          src: 'assets/ics.webp'           }
 ];
 
 const MIN_LOAD_MS = 1200;
-const LOAD_TIMEOUT_MS = 6000;
+const LOAD_TIMEOUT_MS = 15000;   // 15с на попытку
+const LOAD_RETRIES = 2;          // до 2 повторных попыток на ассет
 const images = {};
 
 function loadAssets() {
@@ -612,20 +613,34 @@ function loadAssets() {
     }
 
     ASSETS.forEach(asset => {
-      const img = new Image();
-      let settled = false;
-      const finish = (ok) => {
+      let settled = false, attempt = 0, timer = null;
+      const finish = (ok, img) => {
         if (settled) return;
         settled = true;
+        clearTimeout(timer);
         if (ok) { images[asset.key] = img; loaded++; }
         else    { failed++; console.warn('[loader] Failed:', asset.src); }
         update();
         if (loaded + failed === ASSETS.length) finalize();
       };
-      img.onload = () => finish(true);
-      img.onerror = () => finish(false);
-      setTimeout(() => finish(false), LOAD_TIMEOUT_MS);
-      img.src = asset.src;
+      const tryLoad = () => {
+        if (settled) return;
+        clearTimeout(timer);
+        const img = new Image();
+        img.onload = () => finish(true, img);
+        img.onerror = () => retry();
+        timer = setTimeout(retry, LOAD_TIMEOUT_MS);
+        // при повторе обходим возможный битый кэш
+        img.src = attempt === 0 ? asset.src : asset.src + '?r=' + attempt;
+      };
+      const retry = () => {
+        if (settled) return;
+        clearTimeout(timer);
+        attempt++;
+        if (attempt <= LOAD_RETRIES) tryLoad();
+        else finish(false, null);
+      };
+      tryLoad();
     });
 
     document.getElementById('retryBtn').addEventListener('click', () => {
@@ -1165,6 +1180,7 @@ function render() {
 
     const img = images[ob.asset];
     if (img) {
+      if (!img) continue; // спрайт не загрузился — пропускаем без краша
       ctx.save();
       if (ob.hit) ctx.globalAlpha = 0.5;
 
